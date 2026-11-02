@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#07111f">
+<link rel="manifest" href="manifest.json">
+<title>JARVIS Voice Assistant</title>
+<style>
+:root{color-scheme:dark;--cyan:#43e7ff;--bg:#07111f;--panel:#0d1c2e;--muted:#9bb2c9}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 50% 10%,#12314a,var(--bg) 60%);font:16px system-ui;color:#eaf7ff;min-height:100vh}
+main{max-width:620px;margin:auto;padding:22px 16px 30px}.top{display:flex;justify-content:space-between;align-items:center}
+h1{font-size:23px;letter-spacing:3px;margin:0;color:var(--cyan)}.status{font-size:12px;color:var(--muted)}
+.orbwrap{display:grid;place-items:center;padding:24px 0 16px}
+.orb{width:176px;height:176px;border-radius:50%;border:1px solid #43e7ff88;background:radial-gradient(circle,#43e7ff55,#0b2439 55%,#07111f 72%);box-shadow:0 0 35px #43e7ff35,inset 0 0 30px #43e7ff25;display:grid;place-items:center;position:relative}
+.orb:before,.orb:after{content:"";position:absolute;border:1px solid #43e7ff55;border-radius:50%;inset:-12px;animation:spin 12s linear infinite}.orb:after{inset:-23px;border-style:dashed;animation-direction:reverse;animation-duration:22s}
+.orb.listening{box-shadow:0 0 60px #43e7ff80,inset 0 0 40px #43e7ff60;animation:pulse 1.2s infinite}
+@keyframes spin{to{transform:rotate(360deg)}}@keyframes pulse{50%{transform:scale(1.04)}}
+.mic{font-size:48px;color:var(--cyan)}.hint{text-align:center;color:var(--muted);font-size:13px;margin:4px 0 16px}
+button,input{font:inherit}button{border:1px solid #43e7ff66;background:#102a40;color:#eaf7ff;border-radius:14px;padding:13px 16px;cursor:pointer}
+button.primary{background:var(--cyan);color:#03121d;font-weight:700;border:0}.row{display:flex;gap:9px}.row input{flex:1;min-width:0;background:#091827;border:1px solid #28445e;border-radius:12px;padding:12px;color:white}
+.panel{background:#0b1a2a;border:1px solid #24435b;border-radius:16px;padding:14px;margin-top:12px}
+.label{font-size:11px;letter-spacing:1.5px;color:var(--cyan);margin-bottom:7px}.reply{white-space:pre-wrap;line-height:1.5;min-height:42px}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.actions button{font-size:13px;padding:9px 12px}
+.small{font-size:12px;color:var(--muted);line-height:1.5;margin-top:12px}
+</style>
+</head>
+<body><main>
+<div class="top"><h1>J.A.R.V.I.S.</h1><div class="status" id="status">SYSTEM READY</div></div>
+<div class="orbwrap"><div class="orb" id="orb"><div class="mic">◉</div></div></div>
+<div class="hint" id="hint">Tap the microphone and speak</div>
+<div class="row"><button class="primary" id="listen" style="flex:1">🎙️ Speak</button><button id="stop">Stop voice</button></div>
+<div class="panel"><div class="label">YOU SAID</div><div id="heard" class="reply">Waiting for command…</div></div>
+<div class="panel"><div class="label">JARVIS</div><div id="reply" class="reply">Hello. I’m ready. Try “what time is it” or “open YouTube”.</div></div>
+<div class="panel"><div class="label">TYPE A COMMAND</div><div class="row"><input id="cmd" placeholder="Ask or type a command…" autocomplete="off"><button class="primary" id="send">Send</button></div>
+<div class="actions"><button data-cmd="What time is it?">Time</button><button data-cmd="What is today's date?">Date</button><button data-cmd="Open YouTube">YouTube</button><button data-cmd="Open Google">Google</button><button data-cmd="Tell me a joke">Joke</button></div></div>
+<div class="small">Voice recognition needs microphone permission and a supported Android speech service. This lightweight version handles common commands locally. General AI answers require connecting an AI service securely; never put a private API key in this file.</div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+let rec=null, listening=false;
+function say(text){$('reply').textContent=text;try{speechSynthesis.cancel();let u=new SpeechSynthesisUtterance(text);u.lang='en-US';u.rate=1;u.pitch=1;speechSynthesis.speak(u)}catch(e){}}
+function setListen(on){listening=on;$('orb').classList.toggle('listening',on);$('status').textContent=on?'LISTENING…':'SYSTEM READY';$('hint').textContent=on?'Speak now…':'Tap the microphone and speak';}
+function handle(raw){const q=raw.trim(),s=q.toLowerCase();$('heard').textContent=q;if(!q)return;
+if(/\b(time|clock)\b/.test(s)){say('The time is '+new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}));return}
+if(/\b(date|day|today)\b/.test(s)){say('Today is '+new Date().toLocaleDateString(undefined,{weekday:'long',year:'numeric',month:'long',day:'numeric'}));return}
+if(s.includes('open youtube')){say('Opening YouTube');window.open('https://m.youtube.com','_blank');return}
+if(s.includes('open google')){say('Opening Google');window.open('https://www.google.com','_blank');return}
+if(s.includes('open')&&s.includes('maps')){say('Opening Maps');window.open('https://maps.google.com','_blank');return}
+if(s.startsWith('search for ')||s.startsWith('google ')){let term=q.replace(/^search for |^google /i,'');say('Searching the web for '+term);window.open('https://www.google.com/search?q='+encodeURIComponent(term),'_blank');return}
+if(s.includes('joke')){say('Why did the computer go to the doctor? It had a virus.');return}
+if(/\b(hello|hi|hey)\b/.test(s)){say('Hello. JARVIS is online. How can I help?');return}
+if(s.includes('who are you')){say('I am JARVIS, your lightweight voice assistant.');return}
+if(s.includes('thank')){say('You are welcome.');return}
+if(s.includes('help')||s.includes('commands')){say('You can ask for the time or date, say open YouTube or Google, or say search for followed by your topic.');return}
+say('I heard: '+q+'. I can handle time, date, web search, and app links in this version. For open-ended AI chat, an AI service needs to be connected.');
+}
+function start(){if(!recognition){say('Speech recognition is not supported in this browser or device. Try enabling Android speech services.');return}
+try{rec=new recognition();rec.lang='en-US';rec.interimResults=false;rec.maxAlternatives=1;rec.onstart=()=>setListen(true);rec.onresult=e=>handle(e.results[0][0].transcript);rec.onerror=e=>{setListen(false);$('hint').textContent='Mic error: '+e.error+' — check permission and speech service';};rec.onend=()=>setListen(false);rec.start()}catch(e){setListen(false);say('Could not start microphone. Please check permission.')}
+}
+$('listen').onclick=start;$('stop').onclick=()=>{if(rec)rec.stop();speechSynthesis.cancel();setListen(false)};
+$('send').onclick=()=>{handle($('cmd').value);$('cmd').value=''};$('cmd').addEventListener('keydown',e=>{if(e.key==='Enter')$('send').click()});
+document.querySelectorAll('[data-cmd]').forEach(b=>b.onclick=()=>handle(b.dataset.cmd));
+if('serviceWorker' in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script></body></html>
